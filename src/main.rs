@@ -36,6 +36,10 @@ impl Log {
     }
     // log once a second
     fn log(&mut self, sequence: u128) {
+        // avoid calling Instant::now() too often, which is expensive, by only checking the sequence number
+        if !sequence.is_multiple_of(10_000) {
+            return;
+        }
         let now = Instant::now();
         if (now - self.last_log_time) > Duration::from_secs(1) {
             let d = sequence - self.last_log_sequence;
