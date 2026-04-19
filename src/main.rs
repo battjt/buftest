@@ -37,7 +37,7 @@ impl Log {
         if (now - self.last) > Duration::from_secs(1) {
             let d = sequence - self.sequence;
             eprintln!(
-                "{}: {}: {} {}/s",
+                "{:6}: {}: {:12} {:12}/s",
                 self.count,
                 self.name,
                 d,
@@ -71,18 +71,20 @@ fn main() -> Result<()> {
         // send
         let tx_name = name.clone() + " tx";
         thread::spawn(|| -> Result<()> {
-            let two_ms = Duration::from_millis(2);
+            let delay = Duration::from_millis(8);
+            let stdout = stdout();
             loop {
-                thread::sleep(two_ms);
-                stdout().lock().flush()?;
+                thread::sleep(delay);
+                stdout.lock().flush()?;
             }
         });
 
         thread::spawn(move || -> Result<()> {
             let mut log = Log::new(tx_name.as_str());
             let mut sequence = 0u128;
+            let out = stdout();
             loop {
-                stdout().lock().write_u128::<BE>(sequence)?;
+                out.lock().write_u128::<BE>(sequence)?;
                 sequence += 1;
                 log.log(sequence as u64);
             }
@@ -90,8 +92,9 @@ fn main() -> Result<()> {
         //receive
         let rx_name = name.clone() + " rx";
         let mut log = Log::new(rx_name.as_str());
+        let mut stdin = stdin();
         loop {
-            let sequence = stdin().read_u128::<BE>()? as u64;
+            let sequence = stdin.read_u128::<BE>()? as u64;
             log.log(sequence);
         }
     }
